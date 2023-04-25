@@ -164,6 +164,7 @@ async function work(howLev, howTou, howStop) {
                         setTimeout(reRequestBalance, 1000)
                     } else {
                         body = JSON.parse(body)
+                        console.log(body)
                         for (let b of body) {
                             if (b.asset === 'USDT') {
                                 sum = +b.balance
@@ -633,7 +634,7 @@ async function work(howLev, howTou, howStop) {
 
                     }
                     if (type === 'l') {
-                        
+
                         if (startObj.mode === 'sell' && +cur[2] > startObj.high) {
                             startObj.high = +cur[2]
                             startObj.atrExtrFakeUp = fakeUp
@@ -712,7 +713,7 @@ async function work(howLev, howTou, howStop) {
 
                     }
                     if (type === 's') {
-                        
+
                         if (startObj.mode === 'buy' && +cur[3] < startObj.low) {
                             startObj.low = +cur[3]
                             startObj.atrExtrFakeUp = fakeUp
@@ -758,7 +759,7 @@ async function work(howLev, howTou, howStop) {
         }
         let price
         if (!tradingNow && internet) {
-            
+
             await new Promise((resolve, reject) => {
                 (function reRequestPrice() {
                     request.get(
@@ -965,28 +966,55 @@ async function work(howLev, howTou, howStop) {
 
 
 
+                setTimeout(async () => {
+
+                    let timeLoss = Date.now()
+
+                    let queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
+
+                    let timeProfit = Date.now()
+                    // лимит тут
+                    let queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
 
 
-                let timeLoss = Date.now()
+                    let hashLoss = signature(queryLoss)
 
-                let queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
+                    let hashProfit = signature(queryProfit);
 
-                let timeProfit = Date.now()
-                // лимит тут
-                let queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
+                    await new Promise((resolve, reject) => {
 
 
-                let hashLoss = signature(queryLoss)
-
-                let hashProfit = signature(queryProfit);
-
-                await new Promise((resolve, reject) => {
-
-
-                    (function reRequestProfit() {
+                        (function reRequestProfit() {
+                            request.post(
+                                {
+                                    url: `https://fapi.binance.com/fapi/v1/order?${queryProfit}&signature=${hashProfit}`,
+                                    headers: {
+                                        'X-MBX-APIKEY': apiKey
+                                    }
+                                },
+                                (err, response, body) => {
+                                    if (!body) {
+                                        internet = false
+                                        if (!internetNoTime) {
+                                            internetNoTime = true
+                                        }
+                                        timeProfit = Date.now()
+                                        queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
+                                        hashProfit = signature(queryProfit)
+                                        setTimeout(reRequestProfit, 1000)
+                                    } else {
+                                        internet = true
+                                        console.log('profit ', body)
+                                        resolve()
+                                    }
+                                }
+                            )
+                        })();
+                    });
+                    (function reRequestLoss() {
                         request.post(
                             {
-                                url: `https://fapi.binance.com/fapi/v1/order?${queryProfit}&signature=${hashProfit}`,
+                                url: `https://fapi.binance.com/fapi/v1/order?${queryLoss}&signature=${hashLoss}`,
                                 headers: {
                                     'X-MBX-APIKEY': apiKey
                                 }
@@ -997,76 +1025,50 @@ async function work(howLev, howTou, howStop) {
                                     if (!internetNoTime) {
                                         internetNoTime = true
                                     }
-                                    timeProfit = Date.now()
-                                    queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
-                                    hashProfit = signature(queryProfit)
-                                    setTimeout(reRequestProfit, 1000)
+                                    timeLoss = Date.now()
+                                    queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
+                                    hashLoss = signature(queryLoss)
+                                    setTimeout(reRequestLoss, 1000)
                                 } else {
+                                    body = JSON.parse(body)
                                     internet = true
-                                    console.log('profit ', body)
-                                    resolve()
+                                    console.log('loss ', body)
+
+                                    if (body.code === -2021) {
+                                        console.log(`lateLoss ${new Date().toLocaleString()}`)
+                                        let timeMarket = Date.now()
+                                        let queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
+                                        let hashMarket = signature(queryMarket);
+                                        (function reRequestMarket() {
+                                            request.post(
+                                                {
+                                                    url: `https://fapi.binance.com/fapi/v1/order?${queryMarket}&signature=${hashMarket}`,
+                                                    headers: {
+                                                        'X-MBX-APIKEY': apiKey
+                                                    }
+                                                },
+                                                (err, response, body) => {
+                                                    if (!body) {
+                                                        internet = false
+                                                        if (!internetNoTime) {
+                                                            internetNoTime = true
+                                                        }
+                                                        timeMarket = Date.now()
+                                                        queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
+                                                        hashMarket = signature(queryMarket)
+                                                        setTimeout(reRequestMarket, 1000)
+                                                    } else {
+                                                        internet = true
+                                                    }
+                                                }
+                                            )
+                                        })()
+                                    }
                                 }
                             }
                         )
-                    })();
-                });
-                (function reRequestLoss() {
-                    request.post(
-                        {
-                            url: `https://fapi.binance.com/fapi/v1/order?${queryLoss}&signature=${hashLoss}`,
-                            headers: {
-                                'X-MBX-APIKEY': apiKey
-                            }
-                        },
-                        (err, response, body) => {
-                            if (!body) {
-                                internet = false
-                                if (!internetNoTime) {
-                                    internetNoTime = true
-                                }
-                                timeLoss = Date.now()
-                                queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
-                                hashLoss = signature(queryLoss)
-                                setTimeout(reRequestLoss, 1000)
-                            } else {
-                                body = JSON.parse(body)
-                                internet = true
-                                console.log('loss ', body)
-
-                                if (body.code === -2021) {
-                                    console.log(`lateLoss ${new Date().toLocaleString()}`)
-                                    let timeMarket = Date.now()
-                                    let queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
-                                    let hashMarket = signature(queryMarket);
-                                    (function reRequestMarket() {
-                                        request.post(
-                                            {
-                                                url: `https://fapi.binance.com/fapi/v1/order?${queryMarket}&signature=${hashMarket}`,
-                                                headers: {
-                                                    'X-MBX-APIKEY': apiKey
-                                                }
-                                            },
-                                            (err, response, body) => {
-                                                if (!body) {
-                                                    internet = false
-                                                    if (!internetNoTime) {
-                                                        internetNoTime = true
-                                                    }
-                                                    timeMarket = Date.now()
-                                                    queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
-                                                    hashMarket = signature(queryMarket)
-                                                    setTimeout(reRequestMarket, 1000)
-                                                } else {
-                                                    internet = true
-                                                }
-                                            }
-                                        )
-                                    })()
-                                }
-                            }
-                        }
-                    )
-                })()
+                    })()
+                }, 1000)
 
 
             } else if (res.o.X === 'FILLED' && tradingNow) {
