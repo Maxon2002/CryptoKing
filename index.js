@@ -59,7 +59,7 @@ async function work(howLev, howTou, howStop) {
     let mode = startObj.mode
 
 
-    console.log('go')
+    console.log('go go')
 
     let oldLow = startObj.oldLow
     let oldHigh = startObj.oldHigh
@@ -123,15 +123,15 @@ async function work(howLev, howTou, howStop) {
 
     let pastAtr = startObj.pastAtr
 
-
+    let fullSum = 0
     let sum = 0
     let bank = 0
     let bnb = 0
     let howNeedBnbInUsdt = 0
     // let bnbInUsdt = 37
 
-    let limitSum = 3
-    let shoulder = 20
+    let limitSum = 100
+    let shoulder = 100
 
 
     let timeBalance = Date.now()
@@ -164,16 +164,28 @@ async function work(howLev, howTou, howStop) {
                         setTimeout(reRequestBalance, 1000)
                     } else {
                         body = JSON.parse(body)
-                        console.log(body)
+                        // console.log(body)
                         for (let b of body) {
                             if (b.asset === 'USDT') {
                                 sum = +b.balance
+                                fullSum = sum
                                 if (sum > limitSum) {
                                     bank = sum - limitSum
                                     sum = limitSum
+                                    if (bank / sum < 0.15) {
+                                        howNeedBnbInUsdt = fullSum * 0.073
+                                        sum = +(fullSum * 0.85).toFixed(8)
+                                        bank = +(fullSum * 0.15).toFixed(8)
+                                    } else {
+                                        howNeedBnbInUsdt = sum * 0.073
+                                    }
+                                } else {
+                                    howNeedBnbInUsdt = sum * 0.073
+                                    sum = +(fullSum * 0.85).toFixed(8)
+                                    bank = +(fullSum * 0.15).toFixed(8)
                                 }
-                                console.log('sum', sum)
-                                howNeedBnbInUsdt = sum * 0.015
+                                // console.log('sum', sum)
+
 
                                 // console.log('howNeedBnbInUsdt', howNeedBnbInUsdt)
                             }
@@ -219,6 +231,7 @@ async function work(howLev, howTou, howStop) {
                                                 let queryTransferFromFut = `asset=USDT&amount=${tens}&type=2&timestamp=${timeTransferFromFut}`;
 
                                                 let hashTransferFromFut = signature(queryTransferFromFut)
+                                                let trueTransfer = true
 
                                                 await new Promise((resolve, reject) => {
                                                     (function reRequestTransferFromFut() {
@@ -240,44 +253,12 @@ async function work(howLev, howTou, howStop) {
                                                                     hashTransferFromFut = signature(queryTransferFromFut)
                                                                     setTimeout(reRequestTransferFromFut, 1000)
                                                                 } else {
-                                                                    internet = true
-                                                                    resolve()
-                                                                }
-                                                            }
-                                                        )
-                                                    })()
-                                                })
-
-                                                let timeBuyBNB = Date.now()
-
-                                                let queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
-
-                                                let hashBuyBNB = signature(queryBuyBNB)
-
-                                                let quanBuy
-
-                                                await new Promise((resolve, reject) => {
-                                                    (function reRequestBuyBNB() {
-                                                        request.post(
-                                                            {
-                                                                url: `https://api.binance.com/api/v3/order?${queryBuyBNB}&signature=${hashBuyBNB}`,
-                                                                headers: {
-                                                                    'X-MBX-APIKEY': apiKey
-                                                                }
-                                                            },
-                                                            (err, response, body) => {
-                                                                if (!body) {
-                                                                    internet = false
-                                                                    if (!internetNoTime) {
-                                                                        internetNoTime = true
-                                                                    }
-                                                                    timeBuyBNB = Date.now()
-                                                                    queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
-                                                                    hashBuyBNB = signature(queryBuyBNB)
-                                                                    setTimeout(reRequestBuyBNB, 1000)
-                                                                } else {
                                                                     body = JSON.parse(body)
-                                                                    quanBuy = +(+body.origQty - body.origQty * 0.00075).toFixed(8)
+                                                                    if (body.code === -5013) {
+                                                                        trueTransfer = false
+                                                                        console.log('-5013 fromFut')
+
+                                                                    }
                                                                     internet = true
                                                                     resolve()
                                                                 }
@@ -286,49 +267,103 @@ async function work(howLev, howTou, howStop) {
                                                     })()
                                                 })
 
-                                                let timeTransferFromSpot = Date.now()
+                                                if (trueTransfer) {
+                                                    let timeBuyBNB = Date.now()
 
-                                                let queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`;
+                                                    let queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
 
-                                                let hashTransferFromSpot = signature(queryTransferFromSpot)
-                                                await new Promise((resolve, reject) => {
-                                                    (function reRequestTransferFromSpot() {
-                                                        request.post(
-                                                            {
-                                                                url: `https://api.binance.com/sapi/v1/futures/transfer?${queryTransferFromSpot}&signature=${hashTransferFromSpot}`,
-                                                                headers: {
-                                                                    'X-MBX-APIKEY': apiKey
-                                                                }
-                                                            },
-                                                            (err, response, body) => {
-                                                                if (!body) {
-                                                                    internet = false
-                                                                    if (!internetNoTime) {
-                                                                        internetNoTime = true
+                                                    let hashBuyBNB = signature(queryBuyBNB)
+
+                                                    let quanBuy
+
+                                                    await new Promise((resolve, reject) => {
+                                                        (function reRequestBuyBNB() {
+                                                            request.post(
+                                                                {
+                                                                    url: `https://api.binance.com/api/v3/order?${queryBuyBNB}&signature=${hashBuyBNB}`,
+                                                                    headers: {
+                                                                        'X-MBX-APIKEY': apiKey
                                                                     }
-                                                                    timeTransferFromSpot = Date.now()
-                                                                    queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`
-                                                                    hashTransferFromSpot = signature(queryTransferFromSpot)
-                                                                    setTimeout(reRequestTransferFromSpot, 1000)
-                                                                } else {
-
-                                                                    bnb += quanBuy
-
-
-                                                                    if (bank > tens) {
-                                                                        bank = +(bank - tens).toFixed(8)
+                                                                },
+                                                                (err, response, body) => {
+                                                                    if (!body) {
+                                                                        internet = false
+                                                                        if (!internetNoTime) {
+                                                                            internetNoTime = true
+                                                                        }
+                                                                        timeBuyBNB = Date.now()
+                                                                        queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
+                                                                        hashBuyBNB = signature(queryBuyBNB)
+                                                                        setTimeout(reRequestBuyBNB, 1000)
                                                                     } else {
-                                                                        sum = +(sum - tens).toFixed(8)
-                                                                        sum += bank
-                                                                        bank = 0
+                                                                        body = JSON.parse(body)
+                                                                        quanBuy = +(+body.origQty - body.origQty * 0.00075).toFixed(8)
+                                                                        internet = true
+                                                                        resolve()
                                                                     }
-                                                                    internet = true
-                                                                    resolve()
                                                                 }
-                                                            }
-                                                        )
-                                                    })()
-                                                })
+                                                            )
+                                                        })()
+                                                    })
+
+                                                    let timeTransferFromSpot = Date.now()
+
+                                                    let queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`;
+
+                                                    let hashTransferFromSpot = signature(queryTransferFromSpot)
+                                                    await new Promise((resolve, reject) => {
+                                                        (function reRequestTransferFromSpot() {
+                                                            request.post(
+                                                                {
+                                                                    url: `https://api.binance.com/sapi/v1/futures/transfer?${queryTransferFromSpot}&signature=${hashTransferFromSpot}`,
+                                                                    headers: {
+                                                                        'X-MBX-APIKEY': apiKey
+                                                                    }
+                                                                },
+                                                                (err, response, body) => {
+                                                                    if (!body) {
+                                                                        internet = false
+                                                                        if (!internetNoTime) {
+                                                                            internetNoTime = true
+                                                                        }
+                                                                        timeTransferFromSpot = Date.now()
+                                                                        queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`
+                                                                        hashTransferFromSpot = signature(queryTransferFromSpot)
+                                                                        setTimeout(reRequestTransferFromSpot, 1000)
+                                                                    } else {
+                                                                        if (body.code !== -5013) {
+                                                                            bnb += quanBuy
+                                                                        } else {
+                                                                            console.log('-5013 fromSpot')
+                                                                        }
+
+                                                                        fullSum = +(fullSum - tens).toFixed(8)
+
+
+                                                                        if (bank > tens) {
+                                                                            bank = +(bank - tens).toFixed(8)
+                                                                            if (bank / sum < 0.15) {
+                                                                                sum = +(fullSum * 0.85).toFixed(8)
+                                                                                bank = +(fullSum * 0.15).toFixed(8)
+                                                                            }
+                                                                        } else {
+                                                                            // sum = +(sum - tens).toFixed(8)
+                                                                            // sum = +(sum + bank).toFixed(8)
+                                                                            // // bank = 0
+                                                                            // let fullSum = sum
+
+                                                                            sum = +(fullSum * 0.85).toFixed(8)
+                                                                            bank = +(fullSum * 0.15).toFixed(8)
+                                                                        }
+
+                                                                        internet = true
+                                                                        resolve()
+                                                                    }
+                                                                }
+                                                            )
+                                                        })()
+                                                    })
+                                                }
                                             }
                                             internet = true
                                             resol()
@@ -746,19 +781,21 @@ async function work(howLev, howTou, howStop) {
     let flipped = false
     let indexOrderFilled = 0
 
+    let lowBnb = false
+
     let side
 
     let priceTriger
 
     async function stopMarket() {
-        console.log('tradingNow ', tradingNow)
-        console.log('internet ', internet)
+        // console.log('tradingNow ', tradingNow)
+        // console.log('internet ', internet)
 
         if (!internet) {
             console.log('noInternet ', new Date().toLocaleString())
         }
         let price
-        if (!tradingNow && internet) {
+        if (!tradingNow && internet && !lowBnb) {
 
             await new Promise((resolve, reject) => {
                 (function reRequestPrice() {
@@ -782,7 +819,7 @@ async function work(howLev, howTou, howStop) {
                 })()
             })
         }
-        if (!tradingNow && internet) {
+        if (!tradingNow && internet && !lowBnb) {
             let how = 100000
 
 
@@ -816,13 +853,83 @@ async function work(howLev, howTou, howStop) {
 
 
 
-                let spredDanger = 0.002
-                if (bank >= sum * spredDanger) {
-                    spredDanger = 0
-                }
-                let dirtyQuan = (sum - sum * spredDanger) * shoulder / priceTriger
+
+                let mark
+                let price
+                // await Promise.all([
+                //     new Promise((resolve, reject) => {
+                //         request.get(
+                //             `https://fapi.binance.com/fapi/v1/ticker/price?symbol=ETHUSDT`,
+                //             (err, response, body) => {
+                //                 body = JSON.parse(body)
+                //                 price = +body.price
+                //                 resolve()
+                //                 // console.log(body)
+                //             }
+                //         )
+
+                //     }),
+                //     new Promise((resolve, reject) => {
+                //         request.get(
+                //             `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT`,
+                //             (err, response, body) => {
+                //                 body = JSON.parse(body)
+                //                 mark = +body.markPrice
+                //                 resolve()
+                //                 // console.log(body)
+                //             }
+                //         )
+                //     })
+                // ])
+
+                // let maybePriceLong
+                // let countContract
+                // let openMinus
+
+                // if (side === 'BUY') {
+                //     maybePriceLong = price * (1 + 0.0005)
+                //     countContract = sum * shoulder / maybePriceLong
+                //     openMinus = countContract * Math.abs(Math.min(0, 1 * (mark - maybePriceLong)))
+                // } else {
+                //     maybePriceLong = price
+                //     countContract = sum * shoulder / maybePriceLong
+                //     // console.log(countContract)
+                //     openMinus = countContract * Math.abs(Math.min(0, -1 * (mark - maybePriceLong)))
+                // }
+
+
+
+                // let result = sum + openMinus
+                // // result = result + result * 0.01
+                // // console.log('result ', result)
+                // let spredDanger = 0.002
+
+                // let quantity
+
+                // if (bank > result - sum) {
+                //     quantity = Math.trunc((sum * shoulder / priceTriger) * 1000) / 1000
+                //     if (bank - (result - sum) / price < quantity * spredDanger) {
+                //         quantity = Math.trunc((quantity - quantity * spredDanger) * 1000) / 1000
+                //     }
+                // } else {
+                //     let some = result * shoulder / countContract
+                //     quantity = Math.trunc((sum * shoulder / some) * 1000) / 1000
+                //     // console.log('q1 ', quantity)
+                //     if (bank / price < quantity * spredDanger) {
+                //         quantity = Math.trunc((quantity - quantity * spredDanger) * 1000) / 1000
+                //         // console.log('q2 ', quantity)
+
+                //     }
+                // }
+
+
+
+                let dirtyQuan = sum * shoulder / priceTriger
                 let quantity = Math.trunc(dirtyQuan * 1000) / 1000
 
+
+
+                // console.log('dirtyQuan ', quantity)
 
                 let timePlace = Date.now()
                 let queryPlace = `symbol=ETHUSDT&side=${side}&type=STOP_MARKET&stopPrice=${priceTriger}&quantity=${quantity}&timestamp=${timePlace}`
@@ -879,23 +986,37 @@ async function work(howLev, howTou, howStop) {
                                     timePlace = Date.now()
                                     queryPlace = `symbol=ETHUSDT&side=${side}&type=STOP_MARKET&stopPrice=${priceTriger}&quantity=${quantity}&timestamp=${timePlace}`
                                     hashPlace = signature(queryPlace)
-                                    setTimeout(reRequestCancel, 1000)
+                                    setTimeout(reRequestPlace, 1000)
                                 } else {
                                     body = JSON.parse(body)
-                                    for (let levels in startObj.objLevels) {
-                                        let level = startObj.objLevels[levels]
-                                        if (level.active) {
-                                            level.active = false
-                                            break
-                                        }
-                                    }
-                                    closesLevel.active = true
-                                    if (body.code === -2021) {
-                                        closesLevel.active = false
-                                        closesLevel.used = true
-                                    }
                                     internet = true
-                                    resolve()
+                                    if (body.code === -2019) {
+                                        console.log(body)
+                                        quantity = Math.trunc((quantity - quantity * 0.01) * 1000) / 1000
+                                        timePlace = Date.now()
+                                        queryPlace = `symbol=ETHUSDT&side=${side}&type=STOP_MARKET&stopPrice=${priceTriger}&quantity=${quantity}&timestamp=${timePlace}`
+                                        hashPlace = signature(queryPlace)
+                                        reRequestPlace()
+                                    } else {
+                                        for (let levels in startObj.objLevels) {
+                                            let level = startObj.objLevels[levels]
+                                            if (level.active) {
+                                                level.active = false
+                                                break
+                                            }
+                                        }
+                                        closesLevel.active = true
+                                        if (body.code === -2021) {
+                                            console.log('-2021')
+                                            closesLevel.active = false
+                                            closesLevel.used = true
+                                        } else {
+                                            console.log(`cloLevOpenTime ${new Date().toLocaleString()}`, closesLevel)
+                                        }
+
+                                        resolve()
+                                    }
+
                                 }
                             }
                         )
@@ -903,12 +1024,12 @@ async function work(howLev, howTou, howStop) {
                 })
 
 
-                console.log(`cloLevOpenTime ${new Date().toLocaleString()}`, closesLevel)
+
             }
 
 
         }
-        setTimeout(stopMarket, 4000)
+        setTimeout(stopMarket, 5000)
     }
 
     stopMarket()
@@ -917,11 +1038,29 @@ async function work(howLev, howTou, howStop) {
 
 
 
-    async function userUpdate(data) {
-        let res = JSON.parse(data.toString())
+    let listenKey
 
-        if (res.e === 'listenKeyExpired') {
-            console.log(`listenKeyExpired ${new Date().toLocaleString()}`)
+
+    await new Promise((resolve, reject) => {
+        request.post(
+            {
+                url: `https://fapi.binance.com/fapi/v1/listenKey`,
+                headers: {
+                    'X-MBX-APIKEY': apiKey
+                }
+            },
+            (err, response, body) => {
+                body = JSON.parse(body)
+                listenKey = body.listenKey
+                resolve()
+            }
+        )
+
+    })
+
+
+    setInterval(() => {
+        (function reRequestListen() {
             request.put(
                 {
                     url: `https://fapi.binance.com/fapi/v1/listenKey`,
@@ -929,12 +1068,87 @@ async function work(howLev, howTou, howStop) {
                         'X-MBX-APIKEY': apiKey
                     }
                 },
-                (err, response, body) => { }
+                (err, response, body) => {
+                    if (!body) {
+                        internet = false
+                        setTimeout(reRequestListen, 1000)
+                    } else {
+                        internet = true
+                    }
+                }
             )
+        })()
+    }, 3000000)
+
+
+    let fullStreamUser = `wss://fstream.binance.com/ws/${listenKey}`
+
+
+    let wsBinUser = new WebSocket(`wss://fstream.binance.com/ws/${listenKey}`)
+    wsBinUser.on('open', () => console.log('Соединение Binance userUpdate установлено в ' + new Date().toLocaleTimeString()))
+    wsBinUser.on('error', () => console.log('Ошибка! binance userUpdate: ' + new Date().toLocaleString()))
+    wsBinUser.on('close', function restart() {
+        console.log('Соединение Binance userUpdate закрыто в ' + new Date().toLocaleTimeString())
+        setTimeout(() => {
+            wsBinUser = new WebSocket(`wss://fstream.binance.com/ws/${listenKey}`)
+            wsBinUser.on('error', () => console.log('Ошибка! binance userUpdate: ' + new Date().toLocaleString()))
+
+            wsBinUser.on('open', () => console.log('Соединение Binance userUpdate установлено в ' + new Date().toLocaleTimeString()))
+            wsBinUser.on('message', userUpdate)
+            wsBinUser.on('ping', data => {
+                wsBinUser.pong(data)
+            })
+            wsBinUser.on('close', restart)
+        }, 1000)
+    })
+
+
+    wsBinUser.on('message', userUpdate)
+    wsBinUser.on('ping', data => {
+        wsBinUser.pong(data)
+    })
+
+
+    async function userUpdate(data) {
+        let res = JSON.parse(data.toString())
+
+        if (res.e === 'listenKeyExpired') {
+            console.log(`listenKeyExpired ${new Date().toLocaleString()}`)
+
+
+            await new Promise((resolve, reject) => {
+                (function reRequestGetListen() {
+                    request.post(
+                        {
+                            url: `https://fapi.binance.com/fapi/v1/listenKey`,
+                            headers: {
+                                'X-MBX-APIKEY': apiKey
+                            }
+                        },
+                        (err, response, body) => {
+                            if (!body) {
+                                internet = false
+                                setTimeout(reRequestGetListen, 1000)
+                            } else {
+                                body = JSON.parse(body)
+                                listenKey = body.listenKey
+                                internet = true
+                                resolve()
+                            }
+                        }
+                    )
+                })()
+            });
+
+            wsBinUser.close()
         }
 
 
         if (res.e === 'ORDER_TRADE_UPDATE') {
+
+            if (res.o.X === 'FILLED') {
+                console.log('fill')
+            }
             if (res.o.X === 'FILLED' && !tradingNow) {
                 tradingNow = true
                 closesLevel.used = true
@@ -981,6 +1195,9 @@ async function work(howLev, howTou, howStop) {
 
                     let hashProfit = signature(queryProfit);
 
+                    let profitObj = {}
+                    let lossObj = {}
+
                     await new Promise((resolve, reject) => {
 
 
@@ -1003,18 +1220,108 @@ async function work(howLev, howTou, howStop) {
                                         hashProfit = signature(queryProfit)
                                         setTimeout(reRequestProfit, 1000)
                                     } else {
-                                        internet = true
-                                        console.log('profit ', body)
-                                        resolve()
+                                        body = JSON.parse(body)
+                                        if (body.code === -1021) {
+                                            console.log('-1021 profit')
+                                            timeProfit = Date.now()
+                                            queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
+                                            hashProfit = signature(queryProfit)
+                                            setTimeout(reRequestProfit, 1000)
+                                        } else {
+                                            internet = true
+                                            console.log('profit ', body)
+                                            profitObj = body
+                                            resolve()
+                                        }
                                     }
                                 }
                             )
                         })();
                     });
-                    (function reRequestLoss() {
-                        request.post(
+                    await new Promise((resolve, reject) => {
+                        (function reRequestLoss() {
+                            request.post(
+                                {
+                                    url: `https://fapi.binance.com/fapi/v1/order?${queryLoss}&signature=${hashLoss}`,
+                                    headers: {
+                                        'X-MBX-APIKEY': apiKey
+                                    }
+                                },
+                                (err, response, body) => {
+                                    if (!body) {
+                                        internet = false
+                                        if (!internetNoTime) {
+                                            internetNoTime = true
+                                        }
+                                        timeLoss = Date.now()
+                                        queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
+                                        hashLoss = signature(queryLoss)
+                                        setTimeout(reRequestLoss, 1000)
+                                    } else {
+                                        body = JSON.parse(body)
+                                        if (body.code === -1021) {
+                                            console.log('-1021 loss')
+
+                                            timeProfit = Date.now()
+                                            queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
+                                            hashProfit = signature(queryProfit)
+                                            setTimeout(reRequestLoss, 1000)
+                                        } else {
+                                            internet = true
+                                            console.log('loss ', body)
+                                            lossObj = body
+                                            if (body.code === -2021) {
+                                                console.log(`lateLoss ${new Date().toLocaleString()}`)
+                                                let timeMarket = Date.now()
+                                                let queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
+                                                let hashMarket = signature(queryMarket);
+                                                (function reRequestMarket() {
+                                                    request.post(
+                                                        {
+                                                            url: `https://fapi.binance.com/fapi/v1/order?${queryMarket}&signature=${hashMarket}`,
+                                                            headers: {
+                                                                'X-MBX-APIKEY': apiKey
+                                                            }
+                                                        },
+                                                        (err, response, body) => {
+                                                            if (!body) {
+                                                                internet = false
+                                                                if (!internetNoTime) {
+                                                                    internetNoTime = true
+                                                                }
+                                                                timeMarket = Date.now()
+                                                                queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
+                                                                hashMarket = signature(queryMarket)
+                                                                setTimeout(reRequestMarket, 1000)
+                                                            } else {
+                                                                internet = true
+                                                                resolve()
+                                                            }
+                                                        }
+                                                    )
+                                                })()
+                                            } else {
+                                                resolve()
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        })()
+                    });
+
+
+                    let timeOpenOrders = Date.now()
+                    let queryOpenOrders = `symbol=ETHUSDT&timestamp=${timeOpenOrders}`;
+
+
+                    let hashOpenOrders = signature(queryOpenOrders);
+
+
+                    (function reRequestOpenOrders() {
+                        request.get(
                             {
-                                url: `https://fapi.binance.com/fapi/v1/order?${queryLoss}&signature=${hashLoss}`,
+                                url: `https://fapi.binance.com/fapi/v1/openOrders?${queryOpenOrders}&signature=${hashOpenOrders}`,
                                 headers: {
                                     'X-MBX-APIKEY': apiKey
                                 }
@@ -1025,53 +1332,27 @@ async function work(howLev, howTou, howStop) {
                                     if (!internetNoTime) {
                                         internetNoTime = true
                                     }
-                                    timeLoss = Date.now()
-                                    queryLoss = `symbol=ETHUSDT&side=${sideProfit}&type=STOP_MARKET&stopPrice=${stopLoss}&closePosition=true&timestamp=${timeLoss}`
-                                    hashLoss = signature(queryLoss)
-                                    setTimeout(reRequestLoss, 1000)
+                                    timeOpenOrders = Date.now()
+                                    queryOpenOrders = `symbol=ETHUSDT&timestamp=${timeOpenOrders}`
+                                    hashOpenOrders = signature(queryOpenOrders)
+                                    setTimeout(reRequestOpenOrders, 1000)
                                 } else {
                                     body = JSON.parse(body)
                                     internet = true
-                                    console.log('loss ', body)
-
-                                    if (body.code === -2021) {
-                                        console.log(`lateLoss ${new Date().toLocaleString()}`)
-                                        let timeMarket = Date.now()
-                                        let queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
-                                        let hashMarket = signature(queryMarket);
-                                        (function reRequestMarket() {
-                                            request.post(
-                                                {
-                                                    url: `https://fapi.binance.com/fapi/v1/order?${queryMarket}&signature=${hashMarket}`,
-                                                    headers: {
-                                                        'X-MBX-APIKEY': apiKey
-                                                    }
-                                                },
-                                                (err, response, body) => {
-                                                    if (!body) {
-                                                        internet = false
-                                                        if (!internetNoTime) {
-                                                            internetNoTime = true
-                                                        }
-                                                        timeMarket = Date.now()
-                                                        queryMarket = `symbol=ETHUSDT&side=${sideProfit}&type=MARKET&closePosition=true&timestamp=${timeMarket}`
-                                                        hashMarket = signature(queryMarket)
-                                                        setTimeout(reRequestMarket, 1000)
-                                                    } else {
-                                                        internet = true
-                                                    }
-                                                }
-                                            )
-                                        })()
+                                    if (body.length < 2) {
+                                        console.log('profOb ', profitObj)
+                                        console.log('lossOb ', lossObj)
                                     }
                                 }
-                            }
-                        )
+                            })
                     })()
+
+
                 }, 1000)
 
 
             } else if (res.o.X === 'FILLED' && tradingNow) {
+
                 indexOrderFilled++
 
                 if (indexOrderFilled === 1) {
@@ -1135,7 +1416,7 @@ async function work(howLev, howTou, howStop) {
                                     } else {
                                         body = JSON.parse(body)
                                         internet = true
-                                        if (+body[0].positionAmt > 0) {
+                                        if (body[0] && +body[0].positionAmt > 0) {
                                             console.log(`flipped ${new Date().toLocaleString()}`)
                                             flipped = true
                                             let side = sideProfit === 'SELL' ? 'BUY' : 'SELL'
@@ -1212,12 +1493,25 @@ async function work(howLev, howTou, howStop) {
                                     for (let b of body) {
                                         if (b.asset === 'USDT') {
                                             sum = +b.balance
+                                            fullSum = sum
                                             if (sum > limitSum) {
                                                 bank = sum - limitSum
                                                 sum = limitSum
+                                                if (bank / sum < 0.15) {
+                                                    howNeedBnbInUsdt = fullSum * 0.073
+                                                    sum = +(fullSum * 0.85).toFixed(8)
+                                                    bank = +(fullSum * 0.15).toFixed(8)
+                                                } else {
+                                                    howNeedBnbInUsdt = sum * 0.073
+                                                }
+
+                                            } else {
+                                                howNeedBnbInUsdt = sum * 0.073
+
+                                                sum = +(fullSum * 0.85).toFixed(8)
+                                                bank = +(fullSum * 0.15).toFixed(8)
                                             }
 
-                                            howNeedBnbInUsdt = sum * 0.015
                                         }
                                         if (b.asset === 'BNB') {
                                             bnb = +b.balance
@@ -1255,7 +1549,7 @@ async function work(howLev, howTou, howStop) {
                                                             let queryTransferFromFut = `asset=USDT&amount=${tens}&type=2&timestamp=${timeTransferFromFut}`;
 
                                                             let hashTransferFromFut = signature(queryTransferFromFut)
-
+                                                            let trueTransfer = true
                                                             await new Promise((resolve, reject) => {
                                                                 (function reRequestTransferFromFut() {
                                                                     request.post(
@@ -1276,43 +1570,12 @@ async function work(howLev, howTou, howStop) {
                                                                                 hashTransferFromFut = signature(queryTransferFromFut)
                                                                                 setTimeout(reRequestTransferFromFut, 1000)
                                                                             } else {
-                                                                                internet = true
-                                                                                resolve()
-                                                                            }
-                                                                        }
-                                                                    )
-                                                                })()
-                                                            })
-
-                                                            let timeBuyBNB = Date.now()
-                                                            let queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
-
-                                                            let hashBuyBNB = signature(queryBuyBNB)
-
-                                                            let quanBuy
-
-                                                            await new Promise((resolve, reject) => {
-                                                                (function reRequestBuyBNB() {
-                                                                    request.post(
-                                                                        {
-                                                                            url: `https://api.binance.com/api/v3/order?${queryBuyBNB}&signature=${hashBuyBNB}`,
-                                                                            headers: {
-                                                                                'X-MBX-APIKEY': apiKey
-                                                                            }
-                                                                        },
-                                                                        (err, response, body) => {
-                                                                            if (!body) {
-                                                                                internet = false
-                                                                                if (!internetNoTime) {
-                                                                                    internetNoTime = true
-                                                                                }
-                                                                                timeBuyBNB = Date.now()
-                                                                                queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
-                                                                                hashBuyBNB = signature(queryBuyBNB)
-                                                                                setTimeout(reRequestBuyBNB, 1000)
-                                                                            } else {
                                                                                 body = JSON.parse(body)
-                                                                                quanBuy = +(+body.origQty - body.origQty * 0.00075).toFixed(8)
+                                                                                if (body.code === -5013) {
+                                                                                    trueTransfer = false
+                                                                                    console.log('-5013 fromFut')
+
+                                                                                }
                                                                                 internet = true
                                                                                 resolve()
                                                                             }
@@ -1321,46 +1584,100 @@ async function work(howLev, howTou, howStop) {
                                                                 })()
                                                             })
 
-                                                            let timeTransferFromSpot = Date.now()
-                                                            let queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`;
+                                                            if (trueTransfer) {
+                                                                let timeBuyBNB = Date.now()
+                                                                let queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
 
-                                                            let hashTransferFromSpot = signature(queryTransferFromSpot)
-                                                            await new Promise((resolve, reject) => {
-                                                                (function reRequestTransferFromSpot() {
-                                                                    request.post(
-                                                                        {
-                                                                            url: `https://api.binance.com/sapi/v1/futures/transfer?${queryTransferFromSpot}&signature=${hashTransferFromSpot}`,
-                                                                            headers: {
-                                                                                'X-MBX-APIKEY': apiKey
-                                                                            }
-                                                                        },
-                                                                        (err, response, body) => {
-                                                                            if (!body) {
-                                                                                internet = false
-                                                                                if (!internetNoTime) {
-                                                                                    internetNoTime = true
+                                                                let hashBuyBNB = signature(queryBuyBNB)
+
+                                                                let quanBuy
+
+                                                                await new Promise((resolve, reject) => {
+                                                                    (function reRequestBuyBNB() {
+                                                                        request.post(
+                                                                            {
+                                                                                url: `https://api.binance.com/api/v3/order?${queryBuyBNB}&signature=${hashBuyBNB}`,
+                                                                                headers: {
+                                                                                    'X-MBX-APIKEY': apiKey
                                                                                 }
-                                                                                timeTransferFromSpot = Date.now()
-                                                                                queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`
-                                                                                hashTransferFromSpot = signature(queryTransferFromSpot)
-                                                                                setTimeout(reRequestTransferFromSpot, 1000)
-                                                                            } else {
-                                                                                bnb += quanBuy
-
-                                                                                if (bank > tens) {
-                                                                                    bank = +(bank - tens).toFixed(8)
+                                                                            },
+                                                                            (err, response, body) => {
+                                                                                if (!body) {
+                                                                                    internet = false
+                                                                                    if (!internetNoTime) {
+                                                                                        internetNoTime = true
+                                                                                    }
+                                                                                    timeBuyBNB = Date.now()
+                                                                                    queryBuyBNB = `symbol=BNBUSDT&side=BUY&type=MARKET&quoteOrderQty=${tens}&timestamp=${timeBuyBNB}`
+                                                                                    hashBuyBNB = signature(queryBuyBNB)
+                                                                                    setTimeout(reRequestBuyBNB, 1000)
                                                                                 } else {
-                                                                                    sum = +(sum - tens).toFixed(8)
-                                                                                    sum += bank
-                                                                                    bank = 0
+                                                                                    body = JSON.parse(body)
+                                                                                    quanBuy = +(+body.origQty - body.origQty * 0.00075).toFixed(8)
+                                                                                    internet = true
+                                                                                    resolve()
                                                                                 }
-                                                                                internet = true
-                                                                                resolve()
                                                                             }
-                                                                        }
-                                                                    )
-                                                                })()
-                                                            })
+                                                                        )
+                                                                    })()
+                                                                })
+
+                                                                let timeTransferFromSpot = Date.now()
+                                                                let queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`;
+
+                                                                let hashTransferFromSpot = signature(queryTransferFromSpot)
+                                                                await new Promise((resolve, reject) => {
+                                                                    (function reRequestTransferFromSpot() {
+                                                                        request.post(
+                                                                            {
+                                                                                url: `https://api.binance.com/sapi/v1/futures/transfer?${queryTransferFromSpot}&signature=${hashTransferFromSpot}`,
+                                                                                headers: {
+                                                                                    'X-MBX-APIKEY': apiKey
+                                                                                }
+                                                                            },
+                                                                            (err, response, body) => {
+                                                                                if (!body) {
+                                                                                    internet = false
+                                                                                    if (!internetNoTime) {
+                                                                                        internetNoTime = true
+                                                                                    }
+                                                                                    timeTransferFromSpot = Date.now()
+                                                                                    queryTransferFromSpot = `asset=BNB&amount=${quanBuy}&type=1&timestamp=${timeTransferFromSpot}`
+                                                                                    hashTransferFromSpot = signature(queryTransferFromSpot)
+                                                                                    setTimeout(reRequestTransferFromSpot, 1000)
+                                                                                } else {
+                                                                                    if (body.code !== -5013) {
+                                                                                        bnb += quanBuy
+                                                                                    } else {
+                                                                                        console.log('-5013 fromSpot')
+                                                                                    }
+
+                                                                                    fullSum = +(fullSum - tens).toFixed(8)
+
+                                                                                    if (bank > tens) {
+                                                                                        bank = +(bank - tens).toFixed(8)
+                                                                                        if (bank / sum < 0.15) {
+                                                                                            sum = +(fullSum * 0.85).toFixed(8)
+                                                                                            bank = +(fullSum * 0.15).toFixed(8)
+                                                                                        }
+                                                                                    } else {
+                                                                                        // sum = +(sum - tens).toFixed(8)
+                                                                                        // sum = +(sum + bank).toFixed(8)
+                                                                                        // // bank = 0
+                                                                                        // let fullSum = sum
+
+                                                                                        sum = +(fullSum * 0.85).toFixed(8)
+                                                                                        bank = +(fullSum * 0.15).toFixed(8)
+                                                                                    }
+
+                                                                                    internet = true
+                                                                                    resolve()
+                                                                                }
+                                                                            }
+                                                                        )
+                                                                    })()
+                                                                })
+                                                            }
                                                         }
                                                         internet = true
                                                         resol()
@@ -1391,65 +1708,12 @@ async function work(howLev, howTou, howStop) {
 
 
 
-    let listenKey
-    await new Promise((resolve, reject) => {
-        request.post(
-            {
-                url: `https://fapi.binance.com/fapi/v1/listenKey`,
-                headers: {
-                    'X-MBX-APIKEY': apiKey
-                }
-            },
-            (err, response, body) => {
-                body = JSON.parse(body)
-                listenKey = body.listenKey
-                resolve()
-            }
-        )
-
-    })
-
-    setInterval(() => {
-        request.put(
-            {
-                url: `https://fapi.binance.com/fapi/v1/listenKey`,
-                headers: {
-                    'X-MBX-APIKEY': apiKey
-                }
-            },
-            (err, response, body) => { }
-        )
-    }, 3000000)
 
 
 
 
-    let fullStreamUser = `wss://fstream.binance.com/ws/${listenKey}`
 
 
-    let wsBinUser = new WebSocket(fullStreamUser)
-    wsBinUser.on('open', () => console.log('Соединение Binance userUpdate установлено в ' + new Date().toLocaleTimeString()))
-    wsBinUser.on('error', () => console.log('Ошибка! binance userUpdate: ' + new Date().toLocaleString()))
-    wsBinUser.on('close', function restart() {
-        console.log('Соединение Binance userUpdate закрыто в ' + new Date().toLocaleTimeString())
-        setTimeout(() => {
-            wsBinUser = new WebSocket(fullStreamUser)
-            wsBinUser.on('error', () => console.log('Ошибка! binance userUpdate: ' + new Date().toLocaleString()))
-
-            wsBinUser.on('open', () => console.log('Соединение Binance userUpdate установлено в ' + new Date().toLocaleTimeString()))
-            wsBinUser.on('message', userUpdate)
-            wsBinUser.on('ping', data => {
-                wsBinUser.pong(data)
-            })
-            wsBinUser.on('close', restart)
-        }, 1000)
-    })
-
-
-    wsBinUser.on('message', userUpdate)
-    wsBinUser.on('ping', data => {
-        wsBinUser.pong(data)
-    })
 
 
 
@@ -1484,6 +1748,7 @@ async function work(howLev, howTou, howStop) {
                             let bnbInUsdt = bnb * +body.price
 
                             if ((bnbInUsdt - howNeedBnbInUsdt) / bnbInUsdt < 0.03) {
+                                lowBnb = true
                                 console.log('priceBnb low 3 ', new Date().toLocaleString())
                                 let howNeed = +howNeedBnbInUsdt + howNeedBnbInUsdt * 0.05
                                 let howLacks = howNeed - bnbInUsdt
@@ -1492,7 +1757,7 @@ async function work(howLev, howTou, howStop) {
 
 
                                 let much = true
-                                if (bank < tens) {
+                                if ((bank - tens) / sum < 0.1) {
                                     much = false
                                 }
                                 if (!much) {
@@ -1529,6 +1794,14 @@ async function work(howLev, howTou, howStop) {
                                             )
                                         })()
                                     })
+
+                                    for (let levels in startObj.objLevels) {
+                                        let level = startObj.objLevels[levels]
+                                        if (level.active) {
+                                            level.active = false
+                                            break
+                                        }
+                                    }
                                 }
 
 
@@ -1565,6 +1838,8 @@ async function work(howLev, howTou, howStop) {
 
                                                     if (body.code === -5013) {
                                                         trueTransfer = false
+                                                        console.log('-5013 fromFut')
+
                                                     }
                                                     internet = true
                                                     resolve()
@@ -1636,15 +1911,30 @@ async function work(howLev, howTou, howStop) {
                                                         hashTransferFromSpot = signature(queryTransferFromSpot)
                                                         setTimeout(reRequestTransferFromSpot, 1000)
                                                     } else {
-                                                        bnb += quanBuy
+                                                        if (body.code !== -5013) {
+                                                            bnb += quanBuy
+                                                        } else {
+                                                            console.log('-5013 fromSpot')
+                                                        }
+
+                                                        fullSum = +(fullSum - tens).toFixed(8)
 
                                                         if (bank > tens) {
                                                             bank = +(bank - tens).toFixed(8)
+                                                            if (bank / sum < 0.15) {
+                                                                sum = +(fullSum * 0.85).toFixed(8)
+                                                                bank = +(fullSum * 0.15).toFixed(8)
+                                                            }
                                                         } else {
-                                                            sum = +(sum - tens).toFixed(8)
-                                                            sum += bank
-                                                            bank = 0
+                                                            // sum = +(sum - tens).toFixed(8)
+                                                            // sum = +(sum + bank).toFixed(8)
+                                                            // // bank = 0
+                                                            // let fullSum = sum
+
+                                                            sum = +(fullSum * 0.85).toFixed(8)
+                                                            bank = +(fullSum * 0.15).toFixed(8)
                                                         }
+
                                                         internet = true
                                                         resolve()
                                                     }
@@ -1653,129 +1943,12 @@ async function work(howLev, howTou, howStop) {
                                         })()
                                     })
 
-
-                                    if (!much) {
-
-                                        let timeOpenOrders = Date.now()
-                                        let queryOpenOrders = `symbol=ETHUSDT&timestamp=${timeOpenOrders}`;
-
-
-                                        let hashOpenOrders = signature(queryOpenOrders)
-
-
-                                        await new Promise((resolve, reject) => {
-                                            (function reRequestOpenOrders() {
-                                                request.get(
-                                                    {
-                                                        url: `https://fapi.binance.com/fapi/v1/openOrders?${queryOpenOrders}&signature=${hashOpenOrders}`,
-                                                        headers: {
-                                                            'X-MBX-APIKEY': apiKey
-                                                        }
-                                                    },
-                                                    (err, response, body) => {
-                                                        if (!body) {
-                                                            internet = false
-                                                            if (!internetNoTime) {
-                                                                internetNoTime = true
-                                                            }
-                                                            timeOpenOrders = Date.now()
-                                                            queryOpenOrders = `symbol=ETHUSDT&timestamp=${timeOpenOrders}`
-                                                            hashOpenOrders = signature(queryOpenOrders)
-                                                            setTimeout(reRequestOpenOrders, 1000)
-                                                        } else {
-                                                            body = JSON.parse(body)
-                                                            internet = true
-                                                            if (body.length > 0) {
-                                                                let timeCancel = Date.now()
-                                                                let queryCancel = `symbol=ETHUSDT&timestamp=${timeCancel}`
-
-                                                                let hashCancel = signature(queryCancel);
-                                                                (function reRequestCancel() {
-                                                                    request.delete(
-                                                                        {
-                                                                            url: `https://fapi.binance.com/fapi/v1/allOpenOrders?${queryCancel}&signature=${hashCancel}`,
-                                                                            headers: {
-                                                                                'X-MBX-APIKEY': apiKey
-                                                                            }
-                                                                        },
-                                                                        (err, response, body) => {
-                                                                            if (!body) {
-                                                                                internet = false
-                                                                                if (!internetNoTime) {
-                                                                                    internetNoTime = true
-                                                                                }
-                                                                                timeCancel = Date.now()
-                                                                                queryCancel = `symbol=ETHUSDT&timestamp=${timeCancel}`
-                                                                                hashCancel = signature(queryCancel)
-                                                                                setTimeout(reRequestCancel, 1000)
-                                                                            } else {
-                                                                                internet = true
-                                                                                resolve()
-                                                                            }
-                                                                        }
-                                                                    )
-                                                                })()
-                                                            } else {
-                                                                resolve()
-                                                            }
-                                                        }
-                                                    }
-                                                )
-                                            })()
-                                        })
-
-
-                                        let spredDanger = 0.002
-
-
-                                        let dirtyQuan = (sum - sum * spredDanger) * shoulder / priceTriger
-                                        let quantity = Math.trunc(dirtyQuan * 1000) / 1000
-
-                                        let timePlace = Date.now()
-                                        let queryPlace = `symbol=ETHUSDT&side=${side}&type=STOP_MARKET&stopPrice=${priceTriger}&quantity=${quantity}&timestamp=${timePlace}`
-                                        let hashPlace = signature(queryPlace);
-                                        (function reRequestPlace() {
-                                            request.post(
-                                                {
-                                                    url: `https://fapi.binance.com/fapi/v1/order?${queryPlace}&signature=${hashPlace}`,
-                                                    headers: {
-                                                        'X-MBX-APIKEY': apiKey
-                                                    }
-                                                },
-                                                (err, response, body) => {
-                                                    if (!body) {
-                                                        internet = false
-                                                        if (!internetNoTime) {
-                                                            internetNoTime = true
-                                                        }
-                                                        timePlace = Date.now()
-                                                        queryPlace = `symbol=ETHUSDT&side=${side}&type=STOP_MARKET&stopPrice=${priceTriger}&quantity=${quantity}&timestamp=${timePlace}`
-                                                        hashPlace = signature(queryPlace)
-                                                        setTimeout(reRequestPlace, 1000)
-                                                    } else {
-                                                        body = JSON.parse(body)
-                                                        for (let levels in startObj.objLevels) {
-                                                            let level = startObj.objLevels[levels]
-                                                            if (level.active) {
-                                                                level.active = false
-                                                                break
-                                                            }
-                                                        }
-                                                        closesLevel.active = true
-                                                        if (body.code === -2021) {
-                                                            closesLevel.active = false
-                                                            closesLevel.used = true
-                                                        }
-                                                        internet = true
-                                                    }
-                                                }
-                                            )
-                                        })()
-                                    }
                                 }
                                 console.log(`sum low3 ${new Date().toLocaleString()}`, sum)
                                 console.log(`bank low3 ${new Date().toLocaleString()}`, bank)
                                 console.log(`bnb low3 ${new Date().toLocaleString()}`, bnb)
+                                lowBnb = false
+
                             }
                             internet = true
                         }
