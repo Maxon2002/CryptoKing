@@ -21,7 +21,6 @@ const WebSocket = require('ws')
 
 
 
-
 function atr(pastRma, n, x) {
     return (pastRma * (n - 1) + x) / n
 }
@@ -34,13 +33,6 @@ function signature(query) {
         .update(query)
         .digest('hex');
 }
-
-
-
-
-
-
-
 
 
 
@@ -59,7 +51,7 @@ async function work(howLev, howTou, howStop) {
     let mode = startObj.mode
 
 
-    console.log('go go')
+    console.log('go go go')
 
     let oldLow = startObj.oldLow
     let oldHigh = startObj.oldHigh
@@ -130,8 +122,8 @@ async function work(howLev, howTou, howStop) {
     let howNeedBnbInUsdt = 0
     // let bnbInUsdt = 37
 
-    let limitSum = 100
-    let shoulder = 100
+    let limitSum = 10000
+    let shoulder = 50
 
 
     let timeBalance = Date.now()
@@ -173,14 +165,14 @@ async function work(howLev, howTou, howStop) {
                                     bank = sum - limitSum
                                     sum = limitSum
                                     if (bank / sum < 0.15) {
-                                        howNeedBnbInUsdt = fullSum * 0.073
+                                        howNeedBnbInUsdt = fullSum * 0.037
                                         sum = +(fullSum * 0.85).toFixed(8)
                                         bank = +(fullSum * 0.15).toFixed(8)
                                     } else {
-                                        howNeedBnbInUsdt = sum * 0.073
+                                        howNeedBnbInUsdt = sum * 0.037
                                     }
                                 } else {
-                                    howNeedBnbInUsdt = sum * 0.073
+                                    howNeedBnbInUsdt = sum * 0.037
                                     sum = +(fullSum * 0.85).toFixed(8)
                                     bank = +(fullSum * 0.15).toFixed(8)
                                 }
@@ -347,10 +339,6 @@ async function work(howLev, howTou, howStop) {
                                                                                 bank = +(fullSum * 0.15).toFixed(8)
                                                                             }
                                                                         } else {
-                                                                            // sum = +(sum - tens).toFixed(8)
-                                                                            // sum = +(sum + bank).toFixed(8)
-                                                                            // // bank = 0
-                                                                            // let fullSum = sum
 
                                                                             sum = +(fullSum * 0.85).toFixed(8)
                                                                             bank = +(fullSum * 0.15).toFixed(8)
@@ -444,7 +432,6 @@ async function work(howLev, howTou, howStop) {
                 })()
 
             })
-            // await klines('ETHUSDT', '1m', 1, Date.now() - 120000).then(res => cur = JSON.parse(res).flat())
             indexKlines++
 
             if (cur[0] <= lastDateCur) {
@@ -788,8 +775,6 @@ async function work(howLev, howTou, howStop) {
     let priceTriger
 
     async function stopMarket() {
-        // console.log('tradingNow ', tradingNow)
-        // console.log('internet ', internet)
 
         if (!internet) {
             console.log('noInternet ', new Date().toLocaleString())
@@ -851,76 +836,6 @@ async function work(howLev, howTou, howStop) {
 
                 priceTriger = closesLevel.entryTriger
 
-
-
-
-                let mark
-                let price
-                // await Promise.all([
-                //     new Promise((resolve, reject) => {
-                //         request.get(
-                //             `https://fapi.binance.com/fapi/v1/ticker/price?symbol=ETHUSDT`,
-                //             (err, response, body) => {
-                //                 body = JSON.parse(body)
-                //                 price = +body.price
-                //                 resolve()
-                //                 // console.log(body)
-                //             }
-                //         )
-
-                //     }),
-                //     new Promise((resolve, reject) => {
-                //         request.get(
-                //             `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT`,
-                //             (err, response, body) => {
-                //                 body = JSON.parse(body)
-                //                 mark = +body.markPrice
-                //                 resolve()
-                //                 // console.log(body)
-                //             }
-                //         )
-                //     })
-                // ])
-
-                // let maybePriceLong
-                // let countContract
-                // let openMinus
-
-                // if (side === 'BUY') {
-                //     maybePriceLong = price * (1 + 0.0005)
-                //     countContract = sum * shoulder / maybePriceLong
-                //     openMinus = countContract * Math.abs(Math.min(0, 1 * (mark - maybePriceLong)))
-                // } else {
-                //     maybePriceLong = price
-                //     countContract = sum * shoulder / maybePriceLong
-                //     // console.log(countContract)
-                //     openMinus = countContract * Math.abs(Math.min(0, -1 * (mark - maybePriceLong)))
-                // }
-
-
-
-                // let result = sum + openMinus
-                // // result = result + result * 0.01
-                // // console.log('result ', result)
-                // let spredDanger = 0.002
-
-                // let quantity
-
-                // if (bank > result - sum) {
-                //     quantity = Math.trunc((sum * shoulder / priceTriger) * 1000) / 1000
-                //     if (bank - (result - sum) / price < quantity * spredDanger) {
-                //         quantity = Math.trunc((quantity - quantity * spredDanger) * 1000) / 1000
-                //     }
-                // } else {
-                //     let some = result * shoulder / countContract
-                //     quantity = Math.trunc((sum * shoulder / some) * 1000) / 1000
-                //     // console.log('q1 ', quantity)
-                //     if (bank / price < quantity * spredDanger) {
-                //         quantity = Math.trunc((quantity - quantity * spredDanger) * 1000) / 1000
-                //         // console.log('q2 ', quantity)
-
-                //     }
-                // }
 
 
 
@@ -1498,15 +1413,15 @@ async function work(howLev, howTou, howStop) {
                                                 bank = sum - limitSum
                                                 sum = limitSum
                                                 if (bank / sum < 0.15) {
-                                                    howNeedBnbInUsdt = fullSum * 0.073
+                                                    howNeedBnbInUsdt = fullSum * 0.037
                                                     sum = +(fullSum * 0.85).toFixed(8)
                                                     bank = +(fullSum * 0.15).toFixed(8)
                                                 } else {
-                                                    howNeedBnbInUsdt = sum * 0.073
+                                                    howNeedBnbInUsdt = sum * 0.037
                                                 }
 
                                             } else {
-                                                howNeedBnbInUsdt = sum * 0.073
+                                                howNeedBnbInUsdt = sum * 0.037
 
                                                 sum = +(fullSum * 0.85).toFixed(8)
                                                 bank = +(fullSum * 0.15).toFixed(8)
@@ -1661,10 +1576,6 @@ async function work(howLev, howTou, howStop) {
                                                                                             bank = +(fullSum * 0.15).toFixed(8)
                                                                                         }
                                                                                     } else {
-                                                                                        // sum = +(sum - tens).toFixed(8)
-                                                                                        // sum = +(sum + bank).toFixed(8)
-                                                                                        // // bank = 0
-                                                                                        // let fullSum = sum
 
                                                                                         sum = +(fullSum * 0.85).toFixed(8)
                                                                                         bank = +(fullSum * 0.15).toFixed(8)
@@ -1703,31 +1614,6 @@ async function work(howLev, howTou, howStop) {
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     setInterval(() => {
@@ -1926,10 +1812,6 @@ async function work(howLev, howTou, howStop) {
                                                                 bank = +(fullSum * 0.15).toFixed(8)
                                                             }
                                                         } else {
-                                                            // sum = +(sum - tens).toFixed(8)
-                                                            // sum = +(sum + bank).toFixed(8)
-                                                            // // bank = 0
-                                                            // let fullSum = sum
 
                                                             sum = +(fullSum * 0.85).toFixed(8)
                                                             bank = +(fullSum * 0.15).toFixed(8)
@@ -1962,6 +1844,5 @@ async function work(howLev, howTou, howStop) {
 
 }
 
-work(0.2, 5, 0.0045)
+work(3, 2, 0.0045)
 
-// учесть время сервера

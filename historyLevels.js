@@ -19,7 +19,7 @@ async function clear(date, sm, howLev, howTou) {
 
     let mode
 
-    let histDate = date - (1000 * 60 * 60 * 24 * 5)
+    let histDate = date - (1000 * 60 * 60 * 24 * 60)
 
 
     let startD = Math.trunc(histDate / 1000 / 60 / 15) * 1000 * 60 * 15
@@ -59,7 +59,7 @@ async function clear(date, sm, howLev, howTou) {
 
     let arrLevels
 
-    await getCandles(sm, '1m', 8, startD).then(res => arrLevels = res)
+    await getCandles(sm, '1m', 87, startD).then(res => arrLevels = res)
 
     arrLevels.pop()
     
