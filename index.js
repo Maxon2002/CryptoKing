@@ -164,17 +164,17 @@ async function work(howLev, howTou, howStop) {
                                 if (sum > limitSum) {
                                     bank = sum - limitSum
                                     sum = limitSum
-                                    if (bank / sum < 0.15) {
+                                    if (bank / sum < 0.25) {
                                         howNeedBnbInUsdt = fullSum * 0.037
-                                        sum = +(fullSum * 0.85).toFixed(8)
-                                        bank = +(fullSum * 0.15).toFixed(8)
+                                        sum = +(fullSum * 0.75).toFixed(8)
+                                        bank = +(fullSum * 0.25).toFixed(8)
                                     } else {
                                         howNeedBnbInUsdt = sum * 0.037
                                     }
                                 } else {
                                     howNeedBnbInUsdt = sum * 0.037
-                                    sum = +(fullSum * 0.85).toFixed(8)
-                                    bank = +(fullSum * 0.15).toFixed(8)
+                                    sum = +(fullSum * 0.75).toFixed(8)
+                                    bank = +(fullSum * 0.25).toFixed(8)
                                 }
                                 // console.log('sum', sum)
 
@@ -334,14 +334,14 @@ async function work(howLev, howTou, howStop) {
 
                                                                         if (bank > tens) {
                                                                             bank = +(bank - tens).toFixed(8)
-                                                                            if (bank / sum < 0.15) {
-                                                                                sum = +(fullSum * 0.85).toFixed(8)
-                                                                                bank = +(fullSum * 0.15).toFixed(8)
+                                                                            if (bank / sum < 0.25) {
+                                                                                sum = +(fullSum * 0.75).toFixed(8)
+                                                                                bank = +(fullSum * 0.25).toFixed(8)
                                                                             }
                                                                         } else {
 
-                                                                            sum = +(fullSum * 0.85).toFixed(8)
-                                                                            bank = +(fullSum * 0.15).toFixed(8)
+                                                                            sum = +(fullSum * 0.75).toFixed(8)
+                                                                            bank = +(fullSum * 0.25).toFixed(8)
                                                                         }
 
                                                                         internet = true
@@ -1412,10 +1412,10 @@ async function work(howLev, howTou, howStop) {
                                             if (sum > limitSum) {
                                                 bank = sum - limitSum
                                                 sum = limitSum
-                                                if (bank / sum < 0.15) {
+                                                if (bank / sum < 0.25) {
                                                     howNeedBnbInUsdt = fullSum * 0.037
-                                                    sum = +(fullSum * 0.85).toFixed(8)
-                                                    bank = +(fullSum * 0.15).toFixed(8)
+                                                    sum = +(fullSum * 0.75).toFixed(8)
+                                                    bank = +(fullSum * 0.25).toFixed(8)
                                                 } else {
                                                     howNeedBnbInUsdt = sum * 0.037
                                                 }
@@ -1423,8 +1423,8 @@ async function work(howLev, howTou, howStop) {
                                             } else {
                                                 howNeedBnbInUsdt = sum * 0.037
 
-                                                sum = +(fullSum * 0.85).toFixed(8)
-                                                bank = +(fullSum * 0.15).toFixed(8)
+                                                sum = +(fullSum * 0.75).toFixed(8)
+                                                bank = +(fullSum * 0.25).toFixed(8)
                                             }
 
                                         }
@@ -1571,14 +1571,14 @@ async function work(howLev, howTou, howStop) {
 
                                                                                     if (bank > tens) {
                                                                                         bank = +(bank - tens).toFixed(8)
-                                                                                        if (bank / sum < 0.15) {
-                                                                                            sum = +(fullSum * 0.85).toFixed(8)
-                                                                                            bank = +(fullSum * 0.15).toFixed(8)
+                                                                                        if (bank / sum < 0.25) {
+                                                                                            sum = +(fullSum * 0.75).toFixed(8)
+                                                                                            bank = +(fullSum * 0.25).toFixed(8)
                                                                                         }
                                                                                     } else {
 
-                                                                                        sum = +(fullSum * 0.85).toFixed(8)
-                                                                                        bank = +(fullSum * 0.15).toFixed(8)
+                                                                                        sum = +(fullSum * 0.75).toFixed(8)
+                                                                                        bank = +(fullSum * 0.25).toFixed(8)
                                                                                     }
 
                                                                                     internet = true
@@ -1807,14 +1807,14 @@ async function work(howLev, howTou, howStop) {
 
                                                         if (bank > tens) {
                                                             bank = +(bank - tens).toFixed(8)
-                                                            if (bank / sum < 0.15) {
-                                                                sum = +(fullSum * 0.85).toFixed(8)
-                                                                bank = +(fullSum * 0.15).toFixed(8)
+                                                            if (bank / sum < 0.25) {
+                                                                sum = +(fullSum * 0.75).toFixed(8)
+                                                                bank = +(fullSum * 0.25).toFixed(8)
                                                             }
                                                         } else {
 
-                                                            sum = +(fullSum * 0.85).toFixed(8)
-                                                            bank = +(fullSum * 0.15).toFixed(8)
+                                                            sum = +(fullSum * 0.75).toFixed(8)
+                                                            bank = +(fullSum * 0.25).toFixed(8)
                                                         }
 
                                                         internet = true
