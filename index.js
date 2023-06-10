@@ -51,7 +51,7 @@ async function work(howLev, howTou, howStop) {
     let mode = startObj.mode
 
 
-    console.log('go go go')
+    console.log('go 4')
 
     let oldLow = startObj.oldLow
     let oldHigh = startObj.oldHigh
@@ -1136,7 +1136,7 @@ async function work(howLev, howTou, howStop) {
                                         setTimeout(reRequestProfit, 1000)
                                     } else {
                                         body = JSON.parse(body)
-                                        if (body.code === -1021) {
+                                        if (body.code) {
                                             console.log('-1021 profit')
                                             timeProfit = Date.now()
                                             queryProfit = `symbol=ETHUSDT&side=${sideProfit}&type=LIMIT&price=${takeProfit}&quantity=${quanProfit}&timeInForce=GTC&timestamp=${timeProfit}`
@@ -1174,7 +1174,7 @@ async function work(howLev, howTou, howStop) {
                                         setTimeout(reRequestLoss, 1000)
                                     } else {
                                         body = JSON.parse(body)
-                                        if (body.code === -1021) {
+                                        if (body.code && body.code !== -2021) {
                                             console.log('-1021 loss')
 
                                             timeProfit = Date.now()
